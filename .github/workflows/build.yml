@@ -1,0 +1,50 @@
+name: Build BeeconMini SEED AC2 PoE Firmware
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential gawk unzip file wget git-core libncurses5-dev zlib1g-dev subversion flex gettext libssl-dev
+
+      - name: Clone immortalwrt-mt798x
+        run: |
+          git clone https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Configure build
+        run: |
+          cd openwrt
+          cat > .config <<EOF
+          CONFIG_TARGET_mediatek=y
+          CONFIG_TARGET_mediatek_mt798x=y
+          CONFIG_TARGET_mediatek_mt798x_DEVICE_beeconmini_seed_ac2=y
+          CONFIG_PACKAGE_kmod-rtl8373-poe=y
+          CONFIG_PACKAGE_luci=y
+          CONFIG_PACKAGE_docker=y
+          CONFIG_PACKAGE_istore=y
+          CONFIG_PACKAGE_kmod-fs-ext4=y
+          CONFIG_PACKAGE_kmod-usb-storage=y
+          CONFIG_PACKAGE_block-mount=y
+          EOF
+
+          make defconfig
+
+      - name: Build firmware
+        run: |
+          cd openwrt
+          make -j$(nproc) download world
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: beeconmini-seed-ac2-poe-firmware
+          path: openwrt/bin/targets/mediatek/mt798x/
