@@ -65,7 +65,7 @@ jobs:
         with:
           name: immortalwrt-seed-ac2-${{ github.run_number }}
           path: |
-            *sysupgrade*
-            *factory*
-            *rootfs*
-            *kernel*
+            openwrt/bin/targets/mediatek/filogic/*sysupgrade*
+            openwrt/bin/targets/mediatek/filogic/*factory*
+            openwrt/bin/targets/mediatek/filogic/*rootfs*
+            openwrt/bin/targets/mediatek/filogic/*kernel*
