@@ -1,5 +1,5 @@
---- a/target/linux/mediatek/filogic/image/mt7981.mk
-+++ b/target/linux/mediatek/filogic/image/mt7981.mk
+--- a/target/linux/mediatek/image/mt7981.mk
++++ b/target/linux/mediatek/image/mt7981.mk
 @@
  define Device/beeconmini_seed-ac2
    DEVICE_VENDOR := BeeconMini
