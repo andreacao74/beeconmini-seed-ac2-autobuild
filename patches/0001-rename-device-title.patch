@@ -9,3 +9,7 @@
    DEVICE_DTS := mt7981-beeconmini-seed-ac2
    DEVICE_DTS_DIR := ../dts
    DEVICE_PACKAGES := \
+     kmod-mt_wifi kmod-realtek-poe kmod-usb3 \
+     luci-app-realtek-poe -urngd
+ endef
+ TARGET_DEVICES += beeconmini_seed-ac2
