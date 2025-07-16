@@ -1,21 +1,22 @@
-name: Build SEED AC2 (mt798x)
-
+name: Build SEED AC2
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 19 * * *"   # 每天 UTC 19:00（北京 03:00）
+    - cron: "0 19 * * *"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4   # ← 必须先拿文件
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
-          sudo apt update
-          sudo apt install -y build-essential gawk unzip file wget git-core libncurses5-dev zlib1g-dev subversion flex gettext libssl-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential git python3-dev \
+            libncurses5-dev libssl-dev zlib1g-dev gawk flex bison \
+            gettext wget unzip rsync
 
       - name: Clone immortalwrt-mt798x
         run: |
@@ -24,19 +25,12 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Apply device-title patch
+      - name: Apply patch
         run: |
           patch -p1 -d openwrt < patches/0001-beeconmini-title.patch
 
-
       - name: Copy defconfig
         run: cp beeconmini-seed-ac2.config openwrt/.config
-
-      - name: Cache DL
-        uses: actions/cache@v4
-        with:
-          path: openwrt/dl
-          key: ${{ runner.os }}-dl-${{ hashFiles('defconfig/seed-ac2-mini.config') }}
 
       - name: Compile
         run: |
@@ -49,6 +43,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: beeconmini-seed-ac2-${{ github.run_number }}
-          path: |
-            openwrt/bin/targets/mediatek/filogic/*sysupgrade*
-            openwrt/bin/targets/mediatek/filogic/*factory*
+          path: openwrt/bin/targets/mediatek/filogic/*sysupgrade*
