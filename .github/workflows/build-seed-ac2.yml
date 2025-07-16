@@ -26,11 +26,6 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 2️⃣ 打补丁
-      - name: Apply patch
-        run: |
-          patch -p1 -d openwrt < patches/0001-beeconmini-title.patch
-
       # 3️⃣ 复制配置
       - name: Copy defconfig
         run: cp beeconmini-seed-ac2.config openwrt/.config
