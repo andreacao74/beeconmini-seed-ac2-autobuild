@@ -17,6 +17,7 @@ jobs:
         run: |
           git clone https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
           cd openwrt
+          git pull origin master   # 获取最新修复
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
