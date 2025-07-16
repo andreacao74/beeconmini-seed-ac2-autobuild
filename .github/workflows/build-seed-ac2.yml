@@ -8,15 +8,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣ 必须先 checkout，才能拿到 patches/ 和 .config
       - name: Checkout repo
-        uses: actions/checkout@v4   # ← 必须先拿文件
+        uses: actions/checkout@v4
 
-      - name: Install deps
+      - name: Install build deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git python3-dev \
-            libncurses5-dev libssl-dev zlib1g-dev gawk flex bison \
-            gettext wget unzip rsync
+          sudo apt-get install -y \
+            build-essential git python3-dev libncurses5-dev libssl-dev \
+            zlib1g-dev gawk flex bison gettext wget unzip rsync
 
       - name: Clone immortalwrt-mt798x
         run: |
@@ -25,13 +26,16 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      # 2️⃣ 打补丁
       - name: Apply patch
         run: |
           patch -p1 -d openwrt < patches/0001-beeconmini-title.patch
 
+      # 3️⃣ 复制配置
       - name: Copy defconfig
         run: cp beeconmini-seed-ac2.config openwrt/.config
 
+      # 4️⃣ 编译
       - name: Compile
         run: |
           cd openwrt
@@ -39,6 +43,7 @@ jobs:
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
 
+      # 5️⃣ 上传固件
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
