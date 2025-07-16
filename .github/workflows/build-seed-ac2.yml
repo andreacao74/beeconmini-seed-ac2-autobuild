@@ -26,8 +26,8 @@ jobs:
 
       - name: Apply device-title patch
         run: |
-          cd openwrt
-          patch -p1 < ../patches/0001-beeconmini-title.patch
+          patch -p1 -d openwrt < patches/0001-beeconmini-title.patch
+
 
       - name: Copy defconfig
         run: cp beeconmini-seed-ac2.config openwrt/.config
