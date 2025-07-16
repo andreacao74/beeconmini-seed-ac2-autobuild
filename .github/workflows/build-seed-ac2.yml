@@ -31,6 +31,11 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: Apply local patch
+        run: |
+          cd openwrt
+          patch -p1 < $GITHUB_WORKSPACE/patches/0001-rename-device-title.patch
+          
       # 4. 放入你的精简配置
       - name: Copy defconfig
         run: cp $GITHUB_WORKSPACE/seed-ac2-mini.config openwrt/.config
