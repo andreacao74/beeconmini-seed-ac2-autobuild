@@ -38,6 +38,10 @@ jobs:
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
 
+      - name: List targets
+        run: |
+          find openwrt/bin/targets -type d -name "*sysupgrade*" -o -type f -name "*sysupgrade*" | head -20
+
       # 5️⃣ 上传固件
       - name: Upload firmware
         uses: actions/upload-artifact@v4
