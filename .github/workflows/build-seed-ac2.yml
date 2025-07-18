@@ -49,3 +49,27 @@ jobs:
         with:
           name: beeconmini-seed-ac2-${{ github.run_number }}
           path: /tmp/sysupgrade/
+      
+      # 5️⃣ 创建带日期的新 Release
+      - name: Create Release
+        id: create_release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: build-${{ github.run_number }}
+          release_name: "SEED AC2 Build ${{ github.run_number }} ($(date +%F))"
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        if: success()
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: openwrt/bin/targets/mediatek/mt7981/immortalwrt-mediatek-mt7981-beeconmini-seed-ac2-squashfs-sysupgrade.bin
+          asset_name: beeconmini-seed-ac2-squashfs-sysupgrade.bin
+          asset_content_type: application/octet-stream
