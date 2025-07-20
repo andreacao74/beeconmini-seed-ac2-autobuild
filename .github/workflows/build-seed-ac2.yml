@@ -45,7 +45,7 @@ jobs:
           # 先用官方 defconfig
           cp defconfig/mt7981-ax3000.config .config
           # 再叠加 patch（相当于追加/覆盖）
-          patch .config < cp beeconmini-seed-ac2.config
+          patch .config < cp defconfig/beeconmini-seed-ac2.config
           # 自动补全依赖
           make defconfig
 
