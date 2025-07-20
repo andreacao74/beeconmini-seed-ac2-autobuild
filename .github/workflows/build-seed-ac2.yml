@@ -42,7 +42,7 @@ jobs:
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
           # 追加自定义配置
-          cat ../self/beeconmini-seed-ac2-extra.config  >> .config
+          cat beeconmini-seed-ac2-extra.config  >> .config
           make defconfig
 
       # 5. 下载 + 编译 （8+9 合并）
@@ -52,13 +52,33 @@ jobs:
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
 
-      # 6、收集固件、上传 Artifact、发布 Release 三合一
-      - name: Collect & publish firmware
+      # 6、收集固件路径
+      - name: Collect firmware
+        run: |
+          mkdir -p /tmp/artifacts
+          find openwrt/bin/targets -type f \
+            \( -name "*sysupgrade*.bin" -o -name "*factory*.bin" -o -name "*.manifest" \) \
+            -exec cp {} /tmp/artifacts/ \;
+
+      # 7、上传到 Actions Artifact（调试/备份）
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: beeconmini-seed-ac2-${{ github.run_number }}
+          path: /tmp/artifacts/
+
+      # 8、生成 yyyymmdd+run_number
+      - name: Generate tag
+        id: tag
+        run: echo "TAG=$(date +%Y%m%d)${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+      # 9、发布 Release（三合一）
+      - name: Release firmware
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: build-${{ github.run_number }}
-          name: "Beecon Mini SEED AC2 build-${{ github.run_number }}"
+          tag_name: ${{ steps.tag.outputs.TAG }}
+          name: "Beecon Mini SEED AC2 build ${{ steps.tag.outputs.TAG }}"
           body: |
             Auto-built from ${{ github.sha }}
           files: |
