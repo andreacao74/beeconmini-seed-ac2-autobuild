@@ -1,85 +1,91 @@
 name: Build Beeconmini SEED AC2
+
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 22 * * *"
 
-# ↓↓↓ 新增这一整块
 permissions:
-  contents: write   # 必须给写权限才能建 release
+  contents: write   # 用于创建 release
   actions: read
-  checks: read
-  deployments: read
-  issues: read
-  packages: read
-  pull-requests: read
-  repository-projects: read
-  security-events: read
-  statuses: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04   # 官方推荐 22.04 LTS
     steps:
-      # 1️⃣ 必须先 checkout，才能拿到 patches/ 和 .config
-      - name: Checkout repo
+      # 1️⃣ 先 checkout 自己仓库（包含 .config / patches / files）
+      - name: Checkout self
         uses: actions/checkout@v4
 
-      - name: Install build deps
+      # 2️⃣ 安装编译依赖（官方列表的精简版，足够用）
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential git python3-dev libncurses5-dev libssl-dev \
-            zlib1g-dev gawk flex bison gettext wget unzip rsync
+            build-essential ccache cmake cpio curl file flex gawk gettext git \
+            gperf libncurses5-dev libssl-dev python3 rsync unzip wget \
+            zlib1g-dev zstd lib32gcc-s1 libc6-dev-i386 subversion
 
-      - name: Clone immortalwrt-mt798x
+      # 3️⃣ 克隆 immortalwrt-mt798x 源码
+      - name: Clone ImmortalWrt
         run: |
           git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          cp -f defconfig/mt7981-ax3000.config .config
-          # 再叠加 patch（相当于追加/覆盖）
-          patch .config < cp defconfig/beeconmini-seed-ac2.config
-          # 自动补全依赖
-          make defconfig
-          
-      # 4️⃣ 编译
-      - name: Compile
+
+      # 4️⃣ 放入配置与补丁
+      - name: Copy config & apply patches
         run: |
           cd openwrt
+          # 基础配置
+          cp -f defconfig/mt7981-ax3000.config .config
+          # 若有额外 patch（diff -u 生成的 .patch 文件）：
+          # for p in ../patches/*.patch; do patch -p1 < "$p"; done
+          # 若你仓库里放了 beeconmini-seed-ac2.config 覆盖文件：
+          cp -f ../beeconmini-seed-ac2.config .config
           make defconfig
+
+      # 5️⃣ 下载 & 编译
+      - name: Download source
+        run: |
+          cd openwrt
           make download -j$(nproc)
+
+      - name: Compile firmware
+        run: |
+          cd openwrt
           make -j$(nproc) || make -j1 V=s
 
-      # 5️⃣ 上传固件
-      - name: Collect sysupgrade images
+      # 6️⃣ 收集固件
+      - name: Collect firmware
         run: |
-          mkdir /tmp/sysupgrade
-          find openwrt/bin/targets -type f -name "*sysupgrade*" -exec cp {} /tmp/sysupgrade/ \;
-      
-      - name: Upload firmware
+          mkdir -p /tmp/artifacts
+          find openwrt/bin/targets -type f -name "*sysupgrade*.bin" -exec cp {} /tmp/artifacts/ \;
+
+      # 7️⃣ 作为 Actions 构件上传（便于调试）
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: beeconmini-seed-ac2-${{ github.run_number }}
-          path: /tmp/sysupgrade/
-      
-      # 👇 先添加一个步骤获取当前日期
-      - name: Get current date
-        id: date
-        run: echo "build_date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          path: /tmp/artifacts/
 
-      # 5️⃣ 创建/更新 Release 并上传固件
+      # 8️⃣ 发布 Release
+      - name: Generate release tag
+        id: tag
+        run: echo "tag=build-$(date +'%Y%m%d')-${{ github.run_number }}" >> $GITHUB_OUTPUT
+
       - name: Release firmware
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: build-${{ github.run_number }}
-          name: "beeconmini seed ac2 编译日期：${{ steps.date.outputs.build_date }}"
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Beecon Mini SEED AC2 ${{ steps.tag.outputs.tag }}"
           body: |
-            Auto-built from commit ${{ github.sha }}
+            Auto-built from ${{ github.sha }}  
+            Target: MT7981 / Beecon Mini SEED AC2
           files: |
-            openwrt/bin/targets/*/*/*sysupgrade*
+            /tmp/artifacts/*
           make_latest: true
           prerelease: false
         env:
