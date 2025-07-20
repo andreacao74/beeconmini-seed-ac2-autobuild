@@ -35,7 +35,7 @@ jobs:
       - name: Clone immortalwrt-mt798x
         run: |
           git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
-          cd openwrt
+          cd immortalwrt-mt798x
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
