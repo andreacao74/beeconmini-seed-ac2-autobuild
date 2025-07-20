@@ -52,32 +52,19 @@ jobs:
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
 
-      # 6. 收集固件
-      - name: Collect firmware
-        run: |
-          mkdir -p /tmp/artifacts
-          find openwrt/bin/targets -type f \
-            \( -name "*sysupgrade*.bin" -o -name "*factory*.bin" -o -name "*.manifest" \) \
-            -exec cp {} /tmp/artifacts/ \;
-
-      # 7. Artifact
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: beeconmini-seed-ac2-${{ github.run_number }}
-          path: /tmp/artifacts/
-
-      # 8. Release
-      - name: Release
+      # 6、收集固件、上传 Artifact、发布 Release 三合一
+      - name: Collect & publish firmware
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: build-$(date +%Y%m%d)-${{ github.run_number }}
-          name: Beecon Mini SEED AC2 build-$(date +%Y%m%d)-${{ github.run_number }}
+          tag_name: build-${{ github.run_number }}
+          name: "Beecon Mini SEED AC2 build-${{ github.run_number }}"
           body: |
-            Auto-built from immortalwrt-mt798x @ ${{ github.sha }}  
-            Patches applied from `defconfig/*.patch`
-          files: /tmp/artifacts/*
+            Auto-built from ${{ github.sha }}
+          files: |
+            openwrt/bin/targets/*/*/*sysupgrade*
+            openwrt/bin/targets/*/*/*factory*
+            openwrt/bin/targets/*/*.manifest
           make_latest: true
           prerelease: false
         env:
