@@ -1,4 +1,4 @@
-name: Build SEED AC2
+name: Build Beeconmini SEED AC2
 on:
   workflow_dispatch:
   schedule:
