@@ -35,7 +35,7 @@ jobs:
       - name: Clone immortalwrt-mt798x
         run: |
           git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
-          cd immortalwrt-mt798x
+          cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -43,7 +43,7 @@ jobs:
       - name: Copy defconfig
         run: |
           # 先用官方 defconfig
-          cd immortalwrt-mt798x
+          cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
           # 再叠加 patch（相当于追加/覆盖）
           patch .config < cp defconfig/beeconmini-seed-ac2.config
@@ -53,7 +53,7 @@ jobs:
       # 4️⃣ 编译
       - name: Compile
         run: |
-          cd immortalwrt-mt798x
+          cd openwrt
           make defconfig
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
