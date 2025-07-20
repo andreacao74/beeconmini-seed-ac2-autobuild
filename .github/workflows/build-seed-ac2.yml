@@ -43,6 +43,7 @@ jobs:
       - name: Copy defconfig
         run: |
           # 先用官方 defconfig
+          cd immortalwrt-mt798x
           cp -f defconfig/mt7981-ax3000.config .config
           # 再叠加 patch（相当于追加/覆盖）
           patch .config < cp defconfig/beeconmini-seed-ac2.config
@@ -52,7 +53,7 @@ jobs:
       # 4️⃣ 编译
       - name: Compile
         run: |
-          cd openwrt
+          cd immortalwrt-mt798x
           make defconfig
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
