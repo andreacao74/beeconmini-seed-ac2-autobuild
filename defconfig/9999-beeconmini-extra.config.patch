@@ -1,0 +1,16 @@
+--- a/defconfig/mt7981-ax3000.config
++++ b/defconfig/mt7981-ax3000.config
+@@ -0,0 +1,11 @@
++# ---- 追加：开启 PoE ----
++CONFIG_PACKAGE_kmod-poe=y
++CONFIG_PACKAGE_poe-cli=y
++CONFIG_PACKAGE_luci-app-poe=y
++
++# ---- 追加：开启 AdGuard Home ----
++CONFIG_PACKAGE_adguardhome=y
++CONFIG_PACKAGE_luci-app-adguardhome=y
++
+ # ---- 追加：关闭 Docker / Container / HA ----
++CONFIG_PACKAGE_luci-app-dockerman=n
++CONFIG_PACKAGE_docker=n
++CONFIG_PACKAGE_homeassistant=n

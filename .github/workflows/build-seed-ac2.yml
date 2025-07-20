@@ -1,4 +1,4 @@
-name: Build Beeconmini SEED AC2
+name: Build Beeconmini SEED AC2 (merged steps)
 
 on:
   workflow_dispatch:
@@ -6,86 +6,80 @@ on:
     - cron: "0 22 * * *"
 
 permissions:
-  contents: write   # 用于创建 release
+  contents: write
   actions: read
 
 jobs:
   build:
-    runs-on: ubuntu-22.04   # 官方推荐 22.04 LTS
+    runs-on: ubuntu-22.04
     steps:
-      # 1️⃣ 先 checkout 自己仓库（包含 .config / patches / files）
+      # 1. 检出自己仓库（含补丁）
       - name: Checkout self
         uses: actions/checkout@v4
+        with:
+          path: self
 
-      # 2️⃣ 安装编译依赖（官方列表的精简版，足够用）
+      # 2. 安装依赖
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential ccache cmake cpio curl file flex gawk gettext git \
+            build-essential ccache clang cmake cpio curl file flex gawk gettext git \
             gperf libncurses5-dev libssl-dev python3 rsync unzip wget \
-            zlib1g-dev zstd lib32gcc-s1 libc6-dev-i386 subversion
+            zlib1g-dev zstd lib32gcc-s1 libc6-dev-i386 subversion patch
 
-      # 3️⃣ 克隆 immortalwrt-mt798x 源码
-      - name: Clone ImmortalWrt
+      # 3. 克隆 + feeds （3+4 合并）
+      - name: Clone & feeds
         run: |
           git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 4️⃣ 放入配置与补丁
-      - name: Copy config & apply patches
+      # 4. 复制 defconfig + 打补丁 + make defconfig （5+6+7 合并）
+      - name: Config & patch
         run: |
           cd openwrt
-          # 基础配置
           cp -f defconfig/mt7981-ax3000.config .config
-          # 若有额外 patch（diff -u 生成的 .patch 文件）：
-          # for p in ../patches/*.patch; do patch -p1 < "$p"; done
-          # 若你仓库里放了 beeconmini-seed-ac2.config 覆盖文件：
-          cp -f ../beeconmini-seed-ac2.config .config
+          # 打补丁
+          for p in ../self/defconfig/*.patch; do
+            [ -f "$p" ] && patch -p1 < "$p"
+          done
           make defconfig
 
-      # 5️⃣ 下载 & 编译
-      - name: Download source
+      # 5. 下载 + 编译 （8+9 合并）
+      - name: Download & compile
         run: |
           cd openwrt
           make download -j$(nproc)
-
-      - name: Compile firmware
-        run: |
-          cd openwrt
           make -j$(nproc) || make -j1 V=s
 
-      # 6️⃣ 收集固件
+      # 6. 收集固件
       - name: Collect firmware
         run: |
           mkdir -p /tmp/artifacts
-          find openwrt/bin/targets -type f -name "*sysupgrade*.bin" -exec cp {} /tmp/artifacts/ \;
+          find openwrt/bin/targets -type f \
+            \( -name "*sysupgrade*.bin" -o -name "*factory*.bin" -o -name "*.manifest" \) \
+            -exec cp {} /tmp/artifacts/ \;
 
-      # 7️⃣ 作为 Actions 构件上传（便于调试）
+      # 7. Artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: beeconmini-seed-ac2-${{ github.run_number }}
           path: /tmp/artifacts/
 
-      # 8️⃣ 发布 Release
-      - name: Generate release tag
-        id: tag
-        run: echo "tag=build-$(date +'%Y%m%d')-${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Release firmware
+      # 8. Release
+      - name: Release
         uses: softprops/action-gh-release@v2
         if: success()
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "Beecon Mini SEED AC2 ${{ steps.tag.outputs.tag }}"
+          tag_name: build-$(date +%Y%m%d)-${{ github.run_number }}
+          name: Beecon Mini SEED AC2 build-$(date +%Y%m%d)-${{ github.run_number }}
           body: |
-            Auto-built from ${{ github.sha }}  
-            Target: MT7981 / Beecon Mini SEED AC2
-          files: |
-            /tmp/artifacts/*
+            Auto-built from immortalwrt-mt798x @ ${{ github.sha }}  
+            Patches applied from `defconfig/*.patch`
+          files: /tmp/artifacts/*
           make_latest: true
           prerelease: false
         env:
