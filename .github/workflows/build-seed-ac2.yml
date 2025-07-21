@@ -16,8 +16,6 @@ jobs:
       # 1. 检出自己仓库（含补丁）
       - name: Checkout self
         uses: actions/checkout@v4
-        with:
-          path: self
 
       # 2. 安装依赖
       - name: Install dependencies
