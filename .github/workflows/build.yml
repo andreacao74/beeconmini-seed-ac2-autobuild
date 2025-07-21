@@ -33,6 +33,18 @@ jobs:
         run: |
           git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
 
+      - name: Install missing host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          file python3-venv python3-setuptools build-essential \
+          gawk unzip python3 python3-pip rsync curl git
+  
+      - name: Clean stale prerequisite stamp
+        run: |
+          cd openwrt
+          rm -f staging_dir/host/.prereq-build
+
       - name: Merge configs
         run: |
           cat $COMMON_FILE >> $CONFIG_FILE
