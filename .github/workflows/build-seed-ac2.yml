@@ -84,7 +84,7 @@ jobs:
         id: tag
         run: echo "TAG=$(date +%Y%m%d)${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      # 10、发布 Release（三合一）
+      # 10、发布 Release
       - name: Release firmware
         uses: softprops/action-gh-release@v2
         if: success()
@@ -94,9 +94,9 @@ jobs:
           body: |
             Auto-built from ${{ github.sha }}
           files: |
-            openwrt/bin/targets/*/*/*sysupgrade*
-            openwrt/bin/targets/*/*/*factory*
-            openwrt/bin/targets/*/*.manifest
+            ${{ env.WORKSPACE }}/openwrt/bin/targets/*/*/*sysupgrade*
+            ${{ env.WORKSPACE }}/openwrt/bin/targets/*/*/*factory*
+            ${{ env.WORKSPACE }}/openwrt/bin/targets/*/*.manifest
           make_latest: true
           prerelease: false
         env:
