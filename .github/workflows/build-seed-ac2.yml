@@ -13,11 +13,25 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
+      # 0. 把构建目录挂到 150 GB 临时盘
+      - name: Mount free disk
+        run: |
+          sudo mkdir -p /mnt/openwrt
+          sudo chown runner:runner /mnt/openwrt
+          echo "WORKSPACE=/mnt/openwrt" >> $GITHUB_ENV
+
       # 1. 检出自己仓库（含补丁）
       - name: Checkout self
         uses: actions/checkout@v4
+        with:
+          path: source
 
-      # 2. 安装依赖
+      # 2. 释放 runner 自带空间（可选但强烈建议）
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache /usr/local/lib/android || true
+
+      # 3. 安装依赖
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -26,51 +40,51 @@ jobs:
             gperf libncurses5-dev libssl-dev python3 rsync unzip wget \
             zlib1g-dev zstd lib32gcc-s1 libc6-dev-i386 subversion patch
 
-      # 3. 克隆 + feeds （3+4 合并）
+      # 4. 克隆 + feeds（目录改到 /mnt/openwrt）
       - name: Clone & feeds
         run: |
+          cd $WORKSPACE
           git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git openwrt
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 4. 复制 defconfig + 打补丁 + make defconfig （5+6+7 合并）
+      # 5. 复制 defconfig + 打补丁 + make defconfig
       - name: Config & extra options
         run: |
-          cd openwrt
+          cd $WORKSPACE/openwrt
           cp -f defconfig/mt7981-ax3000.config .config
-          # 追加自定义配置
-          cat ../beeconmini-seed-ac2-extra.config  >> .config
+          cat $GITHUB_WORKSPACE/source/beeconmini-seed-ac2-extra.config >> .config
           make defconfig
 
-      # 5. 下载 + 编译 （8+9 合并）
+      # 6. 下载 + 编译
       - name: Download & compile
         run: |
-          cd openwrt
+          cd $WORKSPACE/openwrt
           make download -j$(nproc)
           make -j$(nproc) || make -j1 V=s
 
-      # 6、收集固件路径
+      # 7. 收集固件
       - name: Collect firmware
         run: |
           mkdir -p /tmp/artifacts
-          find openwrt/bin/targets -type f \
+          find $WORKSPACE/openwrt/bin/targets -type f \
             \( -name "*sysupgrade*.bin" -o -name "*factory*.bin" -o -name "*.manifest" \) \
             -exec cp {} /tmp/artifacts/ \;
 
-      # 7、上传到 Actions Artifact（调试/备份）
+      # 8. 上传 Artifact
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: beeconmini-seed-ac2-${{ github.run_number }}
           path: /tmp/artifacts/
 
-      # 8、生成 yyyymmdd+run_number
+      # 9、生成 yyyymmdd+run_number
       - name: Generate tag
         id: tag
         run: echo "TAG=$(date +%Y%m%d)${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      # 9、发布 Release（三合一）
+      # 10、发布 Release（三合一）
       - name: Release firmware
         uses: softprops/action-gh-release@v2
         if: success()
