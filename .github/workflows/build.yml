@@ -1,0 +1,102 @@
+name: Build BeeconMini SEED AC2 Firmware
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 0'   # 每周日凌晨 3 点
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+  REPO_URL: https://github.com/BeeconMini/immortalwrt.git
+  REPO_BRANCH: 24.10.1
+  CONFIG_FILE: configs/seed-ac2.config
+  COMMON_FILE: configs/mt7981-common.inc
+  FIRMWARE_NAME: BeeconMini-SEED-AC2-immortalwrt-24.10.1
+  UPLOAD_RELEASE: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout build scripts
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bzip2 clang sharutils gawk libglib2.0-dev help2man \
+            python3-docutils uuid-dev lrzsz python3 libdevmapper-dev \
+            bison gettext libxml-parser-perl autopoint p7zip-full \
+            libltdl-dev uglifyjs fastjar zlib1g-dev llvm xxd libyaml-dev \
+            libssl-dev flex lib32gcc-s1 ninja-build asciidoc unzip gcc \
+            device-tree-compiler libncursesw5-dev libelf-dev ccache cpio \
+            autoconf python3-setuptools sphinx-common repo libmpc-dev \
+            g++ ocaml-nox automake python3-ply intltool grep build-essential \
+            swig curl ocaml-findlib vim wget antlr3 libmpfr-dev libgnutls28-dev \
+            qemu-utils glibc-doc libncurses-dev quilt xmlto gperf msmtp \
+            libc6-dev-i386 ecj subversion p7zip git scons diffutils binutils \
+            lld manpages-posix-dev haveged perl nano python3-pyelftools \
+            genisoimage g++-multilib tcl re2c gcc-multilib ack cgdb libtool \
+            upx-ucl python3-pip libpython3-dev squashfs-tools libc6-dev \
+            sphinxsearch texinfo zstd patch libfuse-dev python3-distutils \
+            libncurses5-dev libgmp3-dev make libreadline-dev rsync cmake pkgconf
+
+      - name: Clone source
+        run: |
+          git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
+
+      - name: Merge configs
+        run: |
+          cat $COMMON_FILE >> $CONFIG_FILE
+          cp $CONFIG_FILE openwrt/.config
+          cd openwrt
+          make defconfig
+
+      - name: Download feeds
+        run: |
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Compile firmware
+        id: compile
+        run: |
+          cd openwrt
+          make -j$(nproc) || make -j1 V=s
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Prepare artifact
+        run: |
+          cd openwrt/bin/targets/mediatek/mt7981/
+          DATE=$(date +"%Y%m%d-%H%M")
+          mkdir -p output
+          for f in *squashfs-sysupgrade.bin; do
+              NEW_NAME="${FIRMWARE_NAME}-${DATE}.bin"
+              cp "$f" output/"$NEW_NAME"
+              sha256sum output/"$NEW_NAME" > output/"$NEW_NAME".sha256
+          done
+          echo "date=$DATE" >> $GITHUB_ENV
+
+      - name: Upload firmware to release
+        if: env.UPLOAD_RELEASE == 'true' && steps.compile.outputs.status == 'success'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: seed-ac2-${{ env.date }}
+          name: "SEED AC2 Auto Build ${{ env.date }}"
+          files: openwrt/bin/targets/mediatek/mt7981/output/*
+          body: |
+            自动生成固件（BeeconMini SEED AC2）
+            - ImmortalWrt 24.10.1
+            - 默认：NAT 加速 / AdGuardHome / Samba / UPnP / IPv6 / USB 存储
+            - 首次刷机后请手动开启硬件加速（可选）：
+              ```
+              uci set firewall.@defaults[0].flow_offloading_hw='1'
+              uci commit firewall
+              reload_config
+              ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
