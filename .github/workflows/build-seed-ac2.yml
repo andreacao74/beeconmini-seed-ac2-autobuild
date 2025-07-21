@@ -42,7 +42,7 @@ jobs:
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
           # 追加自定义配置
-          cat beeconmini-seed-ac2-extra.config  >> .config
+          cat ../beeconmini-seed-ac2-extra.config  >> .config
           make defconfig
 
       # 5. 下载 + 编译 （8+9 合并）
