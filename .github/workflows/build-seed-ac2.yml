@@ -1,4 +1,4 @@
-name: Build Beeconmini SEED AC2 (merged steps)
+name: Build Beeconmini SEED AC2
 
 on:
   workflow_dispatch:
