@@ -1,12 +1,13 @@
 name: Build BeeconMini SEED AC2 Firmware
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-  schedule:
-    - cron: '0 3 * * 0'   # 每周日凌晨 3 点
   workflow_dispatch:
+  schedule:
+    - cron: "0 22 * * *"
+    
+permissions:
+  contents: write
+  actions: read
 
 env:
   TZ: Asia/Shanghai
