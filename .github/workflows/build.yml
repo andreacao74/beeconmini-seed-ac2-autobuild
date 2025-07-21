@@ -12,8 +12,8 @@ env:
   TZ: Asia/Shanghai
   REPO_URL: https://github.com/BeeconMini/immortalwrt.git
   REPO_BRANCH: 24.10.1
-  CONFIG_FILE: configs/seed-ac2.config
-  COMMON_FILE: configs/mt7981-common.inc
+  CONFIG_FILE: config/seed-ac2.config
+  COMMON_FILE: config/mt7981-common.inc
   FIRMWARE_NAME: BeeconMini-SEED-AC2-immortalwrt-24.10.1
   UPLOAD_RELEASE: true
 
