@@ -53,7 +53,7 @@ jobs:
       - name: Config & extra options
         run: |
           cd $WORKSPACE/openwrt
-          cp -f defconfig/mt7981-ax3000.config .config
+          cp -f $GITHUB_WORKSPACE/source/mt798x-common.config .config
           cat $GITHUB_WORKSPACE/source/beeconmini-seed-ac2-extra.config >> .config
           make defconfig
 
