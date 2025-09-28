@@ -1,4 +1,4 @@
-name: Build Beeconmini SEED AC2
+name: Build Beeconmini SEED AC3
 
 on:
   workflow_dispatch:
